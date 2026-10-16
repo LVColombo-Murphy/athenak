@@ -1,14 +1,14 @@
 #! /bin/bash
 
 #SBATCH --job-name bhl
-#SBATCH --account AST235
-#SBATCH --partition batch
+#SBATCH --account lmurphy1    # was previously AST235
+#SBATCH --partition batch     # replace batch with whatever rusty partition we want
 ##SBATCH -q debug
 #SBATCH --nodes 163
 #SBATCH --time 4:00:00
 ##SBATCH --time 6:00:00
-#SBATCH --output %x-%j.out
-#SBATCH --mail-user xs2525@columbia.edu
+#SBATCH --output %x-%j.out    # unsure is this is xin specific, i think its general
+#SBATCH --mail-user l.colombo-murphy@columbia.edu
 #SBATCH --mail-type all
 #######(8_7_* 6 hours -> 8000M)
 #######(8_8 * 12 hrs -> 750)
@@ -20,22 +20,22 @@ nodes_per_job=163
 ranks_per_job=1304
 gpus_per_node=8
 runtime=03:40:00       # athena -t wall limit (< SBATCH --time 1:00:00): writes a final rst then exits cleanly
-jobbasename=bhl_tst_1e9
-problem=bhl_tst_1e9
-data_dirc=/lustre/orion/ast235/scratch/xinsheng/bh_trans/output
+jobbasename=bhl_v0.9_b0.1 # bhl_tst_1e9
+problem=bhl_v0.9_b0.1     
+data_dirc=/mnt/ceph/users/lmurphy1/relativistic_bhl/output   # was previously /lustre/orion/ast235/scratch/xinsheng/bh_trans/output
 names=()
-names+=("bhl_tst_1e9")
+names+=("bhl_tst_norad")  
 
 arguments=()
 arguments+=("")
 
 # Derived Parameters
-work_path=/lustre/orion/ast235/scratch/xinsheng/bh_trans
-problem_path=$work_path/run
-execute_path=$work_path/run/build/src
-input_path=$work_path/input
-data_path=$data_dirc
-output_path=$work_path/output
+work_path=/mnt/home/lmurphy1/athenak        # /lustre/orion/ast235/scratch/xinsheng/bh_trans
+problem_path=$work_path                     # /run
+execute_path=$work_path/build/src           # /run/build/src
+input_path=$work_path/bhl_accretion
+data_path=$data_dirc/run_data
+output_path=$data_dirc/run_log              # $work_path/output
 executable=$execute_path/athena
 
 # Read names for each job
@@ -43,7 +43,7 @@ cd $input_path
 inputfile_all=(*)
 num_input=${#inputfile_all[@]}
 
-# Create directories if not exist
+# Create directories if they do not exist
 mkdir -p $data_path
 mkdir -p $output_path
 for ((n = 0; n < ${#names[@]}; n++)); do

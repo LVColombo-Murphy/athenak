@@ -24,120 +24,120 @@ basename  = bhl_tst_norad
 <mesh>
 nghost = 4        # Number of ghost cells
 
-nx1    = 168       # number of cells in x1-direction
-x1min  = -56    # -1024
-x1max  =  112   # 1024
+nx1    = 192       # number of cells in x1-direction
+x1min  = -1024.0    # 256 r_g box
+x1max  =  2048.0
 ix1_bc = user      # WindBCs: injection on -x face
 ox1_bc = user      # WindBCs: zero-gradient outflow (downstream)
 
-nx2    = 168
-x2min  = -56
-x2max  =  56
+nx2    = 128
+x2min  = -1024.0
+x2max  =  1024.0
 ix2_bc = user      # WindBCs: zero-gradient outflow
 ox2_bc = user
 
-nx3    = 16
-x3min  = -56
-x3max  =  56
+nx3    = 128
+x3min  = -1024.0
+x3max  =  1024.0
 ix3_bc = user      # WindBCs: zero-gradient outflow
 ox3_bc = user
 
 <meshblock>
-nx1  = 24
-nx2  = 24
-nx3  = 8
+nx1  = 64
+nx2  = 64
+nx3  = 32
 
-# <mesh_refinement>
-# refinement = static
-# prolong_primitives = true
+<mesh_refinement>
+refinement = static
+prolong_primitives = true
 
-# <refined_region1>
-# level = 1
-# x1min = -224.0
-# x1max =  2048.0
-# x2min = -448.0
-# x2max =  448.0
-# x3min = -448.0
-# x3max =  448.0
+<refined_region1>
+level = 1
+x1min = -224.0
+x1max =  2048.0
+x2min = -448.0
+x2max =  448.0
+x3min = -448.0
+x3max =  448.0
 
-# <refined_region2>
-# level = 2
-# x1min = -112.0
-# x1max =  448.0
-# x2min = -224.0
-# x2max =  224.0
-# x3min = -224.0
-# x3max =  224.0
+<refined_region2>
+level = 2
+x1min = -112.0
+x1max =  448.0
+x2min = -224.0
+x2max =  224.0
+x3min = -224.0
+x3max =  224.0
 
-# <refined_region3>
-# level = 3
-# x1min = -56.0
-# x1max =  256.0
-# x2min = -128.0
-# x2max =  128.0
-# x3min = -128.0
-# x3max =  128.0
+<refined_region3>
+level = 3
+x1min = -56.0
+x1max =  256.0
+x2min = -128.0
+x2max =  128.0
+x3min = -128.0
+x3max =  128.0
 
-# <refined_region4>
-# level = 4
-# x1min = -32.0
-# x1max =  128.0
-# x2min = -64.0
-# x2max =  64.0
-# x3min = -64.0
-# x3max =  64.0
+<refined_region4>
+level = 4
+x1min = -32.0
+x1max =  128.0
+x2min = -64.0
+x2max =  64.0
+x3min = -64.0
+x3max =  64.0
 
-# <refined_region5>
-# level = 5
-# x1min = -16.0
-# x1max =  64.0
-# x2min = -32.0
-# x2max =  32.0
-# x3min = -32.0
-# x3max =  32.0
+<refined_region5>
+level = 5
+x1min = -16.0
+x1max =  64.0
+x2min = -32.0
+x2max =  32.0
+x3min = -32.0
+x3max =  32.0
 
-# <refined_region6>
-# level = 6
-# x1min = -8.0
-# x1max =  48.0
-# x2min = -16.0
-# x2max =  16.0
-# x3min = -16.0
-# x3max =  16.0
+<refined_region6>
+level = 6
+x1min = -8.0
+x1max =  48.0
+x2min = -16.0
+x2max =  16.0
+x3min = -16.0
+x3max =  16.0
 
-# <refined_region7>
-# level = 7
-# x1min = -4.0
-# x1max =  16.0
-# x2min = -8.0
-# x2max =  8.0
-# x3min = -8.0
-# x3max =  8.0
+<refined_region7>
+level = 7
+x1min = -4.0
+x1max =  16.0
+x2min = -8.0
+x2max =  8.0
+x3min = -8.0
+x3max =  8.0
 
-# <refined_region8>
-# level = 8
-# x1min =  0.0
-# x1max =  20.0
-# x2min = -8.0
-# x2max =  8.0
-# x3min = -8.0
-# x3max =  8.0
+<refined_region8>
+level = 8
+x1min =  0.0
+x1max =  20.0
+x2min = -8.0
+x2max =  8.0
+x3min = -8.0
+x3max =  8.0
 
-# <refined_region9>
-# level = 7
-# x1min =  16.0
-# x1max =  64.0
-# x2min = -8.0
-# x2max =  8.0
-# x3min = -8.0
-# x3max =  8.0
+<refined_region9>
+level = 7
+x1min =  16.0
+x1max =  64.0
+x2min = -8.0
+x2max =  8.0
+x3min = -8.0
+x3max =  8.0
 
 <time>
-evolution  = dynamic     # does this determine dynamic vs stationary GRMHD?
+evolution  = dynamic
 integrator = rk2
 cfl_number = 0.3
 nlim       = -1
-tlim       = 1000.0 # was 60000.0
+tlim       = 60000.0
 ndiag      = 100
 
 <coord>
@@ -173,9 +173,9 @@ mu          = 0.6
 #   t0     = p/rho (set directly)
 #   beta_target = beta_inf with relativistic (1-v^2) factor in b0 formula
 rho0         = 1.0
-v_wind       = 0.5        # physical v_inf/c
-t0           = 1.53e-8    # T = 1e5 K
-beta_target  = 5
+v_wind       = 0.9        # physical v_inf/c
+t0           = 1.53e-8    # T = 1e5 K Jets are of order 1e10 K
+beta_target  = 0.1
 user_hist    = true
 
 <output1>
@@ -197,7 +197,7 @@ variable  = mhd_w_bcc
 dt        = 10.0
 
 <output4>
-file_type = bin              # x2=0 slice (xz, wind impact through BH)
+file_type = bin              # x2=0 slice (xz, wind impact through BH, observe jets)
 slice_x2  = 0.0
 id        = slice_y
 variable  = mhd_w_bcc
