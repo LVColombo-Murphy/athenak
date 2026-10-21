@@ -1,24 +1,28 @@
-#! /bin/bash
-
-#SBATCH --job-name bhl
-#SBATCH --account lmurphy1    # was previously AST235
-#SBATCH --partition batch     # replace batch with whatever rusty partition we want
-##SBATCH -q debug
-#SBATCH --nodes 163
-#SBATCH --time 4:00:00
-##SBATCH --time 6:00:00
-#SBATCH --output %x-%j.out    # unsure is this is xin specific, i think its general
+#!/bin/bash
+#SBATCH --job-name=bhl_relativistic
+#SBATCH --output=/mnt/ceph/users/lmurphy1/relativistic_bhl/output/run_log/%x-%j.out
+#SBATCH --error=/mnt/ceph/users/lmurphy1/relativistic_bhl/output/run_log/%x-%j.err
+#SBATCH -p gpu
+#SBATCH -C a100-80gb             # binary is built for sm_80 (Kokkos_ARCH_AMPERE80)
+#SBATCH --nodes=1                # keep all ranks on one node (a100 nodes have 4 GPUs)
+#SBATCH --ntasks-per-node=4      # 1 MPI rank == 1 GPU. Max useful value here is 8
+#SBATCH --gpus-per-task=1
+#SBATCH --cpus-per-task=16       # CUDA build has no host threading; CPUs are for MPI + I/O
+#SBATCH --mem=32G
+#SBATCH --time=04:00:00
+#SBATCH --propagate=NONE         # do NOT inherit the login shell's 8MB memlock limit
 #SBATCH --mail-user l.colombo-murphy@columbia.edu
 #SBATCH --mail-type all
-#######(8_7_* 6 hours -> 8000M)
-#######(8_8 * 12 hrs -> 750)
+
+# Without this, UCX cannot register InfiniBand memory and MPI dies at startup
+# with "Failed to create UCP worker".  Hard limit is already unlimited.
+ulimit -l unlimited
+
 
 # Parameters
-#nodes_per_job=408
-#ranks_per_job=3264
-nodes_per_job=163
-ranks_per_job=1304
-gpus_per_node=8
+nodes_per_job=1
+ranks_per_job=4
+gpus_per_node=4
 runtime=03:40:00       # athena -t wall limit (< SBATCH --time 1:00:00): writes a final rst then exits cleanly
 jobbasename=bhl_v0.9_b0.1 # bhl_tst_1e9
 problem=bhl_v0.9_b0.1     
@@ -53,19 +57,12 @@ done
 
 # Set environment
 cd $problem_path
-#module restore
-#module load PrgEnv-cray craype-accel-amd-gfx90a cray-python
-#module load amd-mixed/5.3.0 cray-mpich/8.1.23 cce/15.0.1
-#export MPICH_GPU_SUPPORT_ENABLED=1
-#export MPICH_MPIIO_HINTS="*:romio_cb_write=disable"
 
-module restore
-module load cpe/24.07 PrgEnv-amd cray-mpich/8.1.30 craype-accel-amd-gfx90a amd/6.2.0 rocm/6.2.0
-module load cmake cray-python emacs
-module unload darshan-runtime
-export LD_LIBRARY_PATH=${CRAY_LD_LIBRARY_PATH}:${LD_LIBRARY_PATH}
-export MPICH_GPU_SUPPORT_ENABLED=1
-export MPICH_MPIIO_HINTS="*:romio_cb_write=disable"
+module purge
+module load modules/2.1-20230203 slurm cuda/11.8.0 openmpi/cuda-4.0.7
+
+export LD_PRELOAD=/mnt/sw/fi/cephtweaks/lib/libcephtweaks.so
+export CEPHTWEAKS_LAZYIO=1
 
 # Calculate parallel values
 num_jobs=${#names[@]}
@@ -105,7 +102,11 @@ for ((n = 0; n < $num_jobs; n++)); do
  mpi_options="--nodes $nodes_per_job --ntasks $ranks_per_job --cpus-per-task 1 --gpus-per-node $gpus_per_node --gpu-bind=closest"
  athenak_options="-d $data_path/$name -t $runtime ${restart_lines[$n]} ${arguments[$n]}"
  output_file=$output_path/$name.out
- time srun $mpi_options $executable $athenak_options &> $output_file && echo $name &
+ time srun srun --cpus-per-task="$SLURM_CPUS_PER_TASK" \
+     --cpu-bind=cores \
+     --gpu-bind=single:2 \
+     bash -c "unset CUDA_VISIBLE_DEVICES; \
+     $executable -i $input_path/$name.athinput"
  sleep 10
 done
 wait
