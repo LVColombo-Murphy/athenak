@@ -3,7 +3,7 @@
 // Copyright(C) 2020 James M. Stone <jmstone@ias.edu> and the Athena code team
 // Licensed under the 3-clause BSD License (the "LICENSE")
 //========================================================================================
-//! \file xin_bhl_xy_rad_corrected.cpp
+//! \file grmhd_bhl.cpp
 //! \brief Problem generator: Bondi-Hoyle-Lyttleton wind onto a Kerr BH.
 //!        Uniform medium streams past the BH along +x at physical speed v_inf
 //!        (input as 'v_wind' in units of c).  Injection on the -x face
@@ -42,18 +42,11 @@
 //!    other 5 faces:     zero-gradient outflow for hydro/B (primitives copied
 //!                       from innermost active cell; face B copied).
 //!
-//! CORRECTED RADIATION BC (vs xin_bhl_xy_final.cpp): on the 5 non-injection
-//! faces, INCOMING radiation directions are no longer set to zero (which acted
-//! as a one-sided radiative sink, cooling the edge gas).  They are instead set
-//! to the ambient wind-boosted thermal-equilibrium intensity at t0 (same analytic
-//! formula as the IC / inner_x1 injection), via WindEquilibIntensity().  OUTGOING
-//! directions keep the zero-gradient copy, so radiation still escapes freely.
-//! Net effect: edge gas is held in radiative equilibrium at t0 while outflow of
-//! both gas and radiation is preserved.  Hydro and B BCs are unchanged.
+//! 
 //!
 //! Inside the horizon: primitives replaced by excision floors (dexcise, pexcise).
 //!
-//! Adapted from xin_bhl_x.cpp (B along +z, theta_B = 0 deg).
+//! Adapted from xin_bhl_xy_rad_corrected.cpp
 
 #include <stdio.h>
 #include <math.h>
@@ -122,6 +115,9 @@ struct bhl_pgen {
   // Comoving b^2 = b0^2 * (1 - v_inf^2) for B perp v.
   // b0 set from beta_target using the relativistic formula (see file header).
   Real b0;              // coordinate-frame horizontal field amplitude
+
+  // Add x value such that wind only is initialized up to this x_wall
+  Real x_wall;
 };
 
   bhl_pgen bhl;
@@ -135,14 +131,13 @@ void WindFluxes(HistoryData *pdata, Mesh *pm);
 //----------------------------------------------------------------------------------------
 //! \fn void ProblemGenerator::UserProblem()
 //! \brief BHL wind onto a Kerr BH along +x.  Optional uniform horizontal B-field (+y).
-//! Compile with '-D PROBLEM=xin_bhl_xy_final' to enroll as user-specific problem generator.
 
 void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
   MeshBlockPack *pmbp = pmy_mesh_->pmb_pack;
   if (!pmbp->pcoord->is_general_relativistic &&
       !pmbp->pcoord->is_dynamical_relativistic) {
     std::cout << "### FATAL ERROR in " << __FILE__ << " at line " << __LINE__ << std::endl
-              << "xin_bhl_xy problem can only be run when GR defined in <coord> block"
+              << "Problem can only be run when GR defined in <coord> block"
               << std::endl;
     exit(EXIT_FAILURE);
   }
@@ -212,9 +207,10 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
   //   rho0   = rho_inf (rest-mass density)
   //   v_wind = v_inf/c (physical wind speed; internal uu^x = gamma_inf * v_inf)
   //   t0     = p/rho
-  bhl.rho0  = pin->GetReal("problem", "rho0");
-  bhl.t0    = pin->GetReal("problem", "t0");
-  bhl.v_inf = pin->GetReal("problem", "v_wind");
+  bhl.rho0   = pin->GetReal("problem", "rho0");
+  bhl.t0     = pin->GetReal("problem", "t0");
+  bhl.v_inf  = pin->GetReal("problem", "v_wind");
+  bhl.x_wall = pin->GetOrAddReal("problem", "x_wall", -5.0);
   if (bhl.v_inf <= -1.0 || bhl.v_inf >= 1.0) {
     std::cout << "### FATAL ERROR in " << __FILE__ << " at line " << __LINE__ << std::endl
               << "v_wind (= v_inf/c) must be in (-1, 1); got " << bhl.v_inf << std::endl;
@@ -290,14 +286,19 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
     Real rho, pgas, urad = 0.0;
     Real uu1, uu2, uu3;
-    if (r_excise > 1.0) {
-      // Asymptotic-wind state (along +x); uu^x = gamma_inf * v_inf (normal-frame).
+    if (r_excise > 1.0 && x1v <= trs.x_wall) {
+      // Asymptotic-wind state (along +x) up to x <= x_wall; uu^x = gamma_inf * v_inf (normal-frame).
       rho  = trs.rho0;
       pgas = rho * trs.t0;
       if (is_radiation_enabled) urad = trs.arad * SQR(SQR(trs.t0));
       uu1 = trs.uu_wind;  uu2 = 0.0;  uu3 = 0.0;
-    } else {
+    } else if (r_excise <= 1.0) {
       // Inside horizon: apply excision floors, zero velocity
+      rho  = trs.dexcise;
+      pgas = trs.pexcise;
+      uu1 = 0.0;  uu2 = 0.0;  uu3 = 0.0;
+    } else {
+      // Outside horizon for x > x_wall: apply excision floors, zero velocity
       rho  = trs.dexcise;
       pgas = trs.pexcise;
       uu1 = 0.0;  uu2 = 0.0;  uu3 = 0.0;
@@ -569,7 +570,11 @@ static void GetBoyerLindquistCoordinates(struct bhl_pgen pgen,
 
 KOKKOS_INLINE_FUNCTION
 Real A1(struct bhl_pgen pgen, Real x1, Real x2, Real x3) {
-  return pgen.b0 * x3;
+  if (x1 <= pgen.x_wall) {        // modified to have a B-field only from x-min to x <= x_wall to prevent magnetic fields initialized within
+    return pgen.b0 * x3;     // the BH but excised by the event horizon, uncertain if these field lines would be stuck 
+  } else {
+    return 0.0;
+  }
 }
 
 KOKKOS_INLINE_FUNCTION

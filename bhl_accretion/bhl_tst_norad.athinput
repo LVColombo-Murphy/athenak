@@ -1,6 +1,6 @@
 <comment>
-problem   = xin_bhl_xy_rad_corrected
-reference = xin_bhl_xy_rad_corrected.cpp
+problem   = grmhd_bhl
+reference = grmhd_bhl.cpp
 
 <job>
 basename  = bhl_tst_norad
@@ -8,27 +8,27 @@ basename  = bhl_tst_norad
 <mesh>
 nghost = 4        # Number of ghost cells
 
-nx1    = 192       # number of cells in x1-direction
-x1min  = -512.0   
-x1max  =  1024.0
+nx1    = 96        # number of cells in x1-direction
+x1min  = -832.0
+x1max  =  128.0
 ix1_bc = user      # WindBCs: injection on -x face
 ox1_bc = user      # WindBCs: zero-gradient outflow (downstream)
 
-nx2    = 128
-x2min  = -512.0
-x2max  =  512.0
+nx2    = 64
+x2min  = -64.0
+x2max  = 576.0
 ix2_bc = user      # WindBCs: zero-gradient outflow
 ox2_bc = user
 
-nx3    = 128
-x3min  = -512.0
-x3max  =  512.0
+nx3    = 64
+x3min  = -64.0
+x3max  = 576.0
 ix3_bc = user      # WindBCs: zero-gradient outflow
 ox3_bc = user
 
 <meshblock>
-nx1  = 64
-nx2  = 64
+nx1  = 32
+nx2  = 32
 nx3  = 32
 
 <mesh_refinement>
@@ -37,35 +37,35 @@ prolong_primitives = true
 
 <refined_region1>
 level = 1
-x1min = -224.0
-x1max =  2048.0
-x2min = -448.0
-x2max =  448.0
-x3min = -448.0
-x3max =  448.0
+x1min = -256.0
+x1max =  64.0
+x2min = -64.0
+x2max =  320.0
+x3min = -64.0
+x3max =  320.0
 
 <refined_region2>
 level = 2
 x1min = -112.0
-x1max =  448.0
-x2min = -224.0
+x1max =  64.0
+x2min = -64.0
 x2max =  224.0
-x3min = -224.0
+x3min = -64.0
 x3max =  224.0
 
 <refined_region3>
 level = 3
-x1min = -56.0
-x1max =  256.0
-x2min = -128.0
+x1min = -64.0
+x1max =  64.0
+x2min = -64.0
 x2max =  128.0
-x3min = -128.0
+x3min = -64.0
 x3max =  128.0
 
 <refined_region4>
 level = 4
 x1min = -32.0
-x1max =  128.0
+x1max =  64.0
 x2min = -64.0
 x2max =  64.0
 x3min = -64.0
@@ -89,39 +89,12 @@ x2max =  16.0
 x3min = -16.0
 x3max =  16.0
 
-<refined_region7>
-level = 7
-x1min = -4.0
-x1max =  16.0
-x2min = -8.0
-x2max =  8.0
-x3min = -8.0
-x3max =  8.0
-
-<refined_region8>
-level = 8
-x1min =  0.0
-x1max =  20.0
-x2min = -8.0
-x2max =  8.0
-x3min = -8.0
-x3max =  8.0
-
-<refined_region9>
-level = 7
-x1min =  16.0
-x1max =  64.0
-x2min = -8.0
-x2max =  8.0
-x3min = -8.0
-x3max =  8.0
-
 <time>
 evolution  = dynamic
 integrator = rk2
 cfl_number = 0.3
 nlim       = -1
-tlim       = 60000.0
+tlim       = 3000.0
 ndiag      = 100
 
 <coord>
@@ -146,10 +119,10 @@ gamma       = 1.6666666666666667
 fofc        = true
 gamma_max   = 20.0
 
-<units>
-bhmass_msun = 100.0
-density_cgs = 1.0e-12
-mu          = 0.6
+# <units>
+# bhmass_msun = 100.0     # <units> block only used if radiation is on
+# density_cgs = 1.0e-12
+# mu          = 0.6
 
 <problem>
 # Relativistic BHL wind onto Kerr BH; B perpendicular to wind & spin (theta_B=90).
@@ -157,42 +130,42 @@ mu          = 0.6
 #   t0     = p/rho (set directly)
 #   beta_target = beta_inf with relativistic (1-v^2) factor in b0 formula
 rho0         = 1.0
-v_wind       = 0.9        # physical v_inf/c
-t0           = 5e-1       # Jets are of order 1e10 K, t is neq T
+v_wind       = 0.95       # physical v_inf/c
+t0           = 5e-1       # Not in Kelvin, Jets are of order 1e10 K, t is neq T
 beta_target  = 0.01
 user_hist    = true
 
 <output1>
 file_type      = hst
-dt             = 10.0
+dt             = 1.0
 user_hist_only = true
 
-<output2>
-file_type = bin              # full 3D dump
-id        = full
-variable  = mhd_w_bcc
-dt        = 100.0
+# <output2>
+# file_type = bin              # full 3D dump
+# id        = full
+# variable  = mhd_w_bcc
+# dt        = 100.0
 
 <output3>
 file_type = bin              # x1=0 slice (yz)
 slice_x1  = 0.0
 id        = slice_x
 variable  = mhd_w_bcc
-dt        = 10.0
+dt        = 1.0
 
 <output4>
 file_type = bin              # x2=0 slice (xz, wind impact through BH, observe jets)
 slice_x2  = 0.0
 id        = slice_y
 variable  = mhd_w_bcc
-dt        = 10.0
+dt        = 1.0
 
 <output5>
 file_type = bin              # x3=0 slice (xy, equatorial)
 slice_x3  = 0.0
 id        = slice_z
 variable  = mhd_w_bcc
-dt        = 10.0
+dt        = 1.0
 
 <output6>
 file_type = rst
@@ -200,8 +173,8 @@ dt        = 250.0
 single_file_per_rank = true
 
 <output7>
-file_type = vtk
-id = slice_z_vtk
-slice_x3 = 0.0
-variable = mhd_w_bcc
-dt = 10.0
+file_type = bin
+slice_x2  = 576.0           # or whatever x2max is
+id        = slice_ymax
+variable  = mhd_w_bcc
+dt        = 10.0
