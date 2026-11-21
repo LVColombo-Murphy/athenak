@@ -94,7 +94,7 @@ evolution  = dynamic
 integrator = rk2
 cfl_number = 0.3
 nlim       = -1
-tlim       = 3000.0
+tlim       = 300.0
 ndiag      = 100
 
 <coord>
@@ -133,6 +133,7 @@ rho0         = 1.0
 v_wind       = 0.95       # physical v_inf/c
 t0           = 5e-1       # Not in Kelvin, Jets are of order 1e10 K, t is neq T
 beta_target  = 0.01
+x_wall       = -10.0      # this is the target value but the pgen will correct to the nearest valid face: x1min + n * (x1max - x1min)/nx1
 user_hist    = true
 
 <output1>

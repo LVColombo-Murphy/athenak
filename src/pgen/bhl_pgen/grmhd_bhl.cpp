@@ -210,7 +210,32 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
   bhl.rho0   = pin->GetReal("problem", "rho0");
   bhl.t0     = pin->GetReal("problem", "t0");
   bhl.v_inf  = pin->GetReal("problem", "v_wind");
-  bhl.x_wall = pin->GetOrAddReal("problem", "x_wall", -5.0);
+  Real x_wall_input = pin->GetOrAddReal("problem", "x_wall", -10.0);
+
+  // Snap x_wall to the nearest base-level cell face to avoid
+  // inter-refinement-level discontinuities in the plasma wall.
+  Real x1min_mesh = pin->GetReal("mesh", "x1min");
+  Real x1max_mesh = pin->GetReal("mesh", "x1max");
+  int  nx1_mesh   = pin->GetInteger("mesh", "nx1");
+  Real dx1_base   = (x1max_mesh - x1min_mesh) / nx1_mesh;
+  Real n_snap     = round((x_wall_input - x1min_mesh) / dx1_base);
+  bhl.x_wall      = x1min_mesh + n_snap * dx1_base;
+
+  // Enforce x_wall < -2 to stay safely outside the horizon.
+  // If snapping moved it to x >= -2, walk one face inward at a time.
+  while (bhl.x_wall >= -2.0) {
+      n_snap    -= 1.0;
+      bhl.x_wall = x1min_mesh + n_snap * dx1_base;
+  }
+
+  if (fabs(bhl.x_wall - x_wall_input) > 1e-10) {
+      std::cout << "### WARNING: x_wall adjusted from "
+                << x_wall_input << " to " << bhl.x_wall
+                << " to align with base-level cell face and satisfy x_wall < -2."
+                << std::endl;
+  }
+  
+  
   if (bhl.v_inf <= -1.0 || bhl.v_inf >= 1.0) {
     std::cout << "### FATAL ERROR in " << __FILE__ << " at line " << __LINE__ << std::endl
               << "v_wind (= v_inf/c) must be in (-1, 1); got " << bhl.v_inf << std::endl;
@@ -286,8 +311,8 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
     Real rho, pgas, urad = 0.0;
     Real uu1, uu2, uu3;
-    if (r_excise > 1.0 && x1v <= trs.x_wall) {
-      // Asymptotic-wind state (along +x) up to x <= x_wall; uu^x = gamma_inf * v_inf (normal-frame).
+    if (r_excise > 1.0 && x1v < trs.x_wall) {
+      // Asymptotic-wind state (along +x) up to x < x_wall; uu^x = gamma_inf * v_inf (normal-frame).
       rho  = trs.rho0;
       pgas = rho * trs.t0;
       if (is_radiation_enabled) urad = trs.arad * SQR(SQR(trs.t0));
@@ -571,7 +596,7 @@ static void GetBoyerLindquistCoordinates(struct bhl_pgen pgen,
 KOKKOS_INLINE_FUNCTION
 Real A1(struct bhl_pgen pgen, Real x1, Real x2, Real x3) {
   if (x1 <= pgen.x_wall) {        // modified to have a B-field only from x-min to x <= x_wall to prevent magnetic fields initialized within
-    return pgen.b0 * x3;     // the BH but excised by the event horizon, uncertain if these field lines would be stuck 
+    return pgen.b0 * x3;          // the BH but excised by the event horizon, uncertain if these field lines would be stuck 
   } else {
     return 0.0;
   }
